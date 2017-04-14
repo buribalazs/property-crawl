@@ -1,14 +1,23 @@
 const request = require('request');
 const proxyService = require('./js/proxy-service');
 
-// proxyService.getProxy().then(console.log(proxy);
-//     request({
-//         url: 'http://' + proxy.ip + ':' + proxy.port,
-//         timeout: 5000,
-//     }, (err, res, html) => {
-//
-//         console.log(err, res, html);
-//     });
-// }).catch(m => console.log(m));
+proxyService.getProxy().then(proxy => {
+    let count = 0;
 
-proxyService.getProxy().then(console.log);
+    function walk() {
+        request({
+            url: 'http://ingatlan.com/',
+            proxy: 'http://' + proxy.ip + ':' + proxy.port,
+        }, (err) => {
+            if (!err){
+                count++;
+                console.log(count);
+                walk();
+            }else{
+                console.log(err);
+            }
+        });
+    }
+
+    walk();
+});
