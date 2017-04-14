@@ -1,0 +1,24 @@
+{
+  "name": "property-crawl",
+  "version": "0.0.1",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/buribalazs/property-crawl.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/buribalazs/property-crawl/issues"
+  },
+  "homepage": "https://github.com/buribalazs/property-crawl#readme",
+  "dependencies": {
+    "cheerio": "^0.22.0",
+    "mongoose": "^4.9.4",
+    "request": "^2.81.0"
+  }
+}
