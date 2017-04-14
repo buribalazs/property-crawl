@@ -49,7 +49,6 @@ function findGoodProxy() {
             }
             request({
                 url: 'http://ingatlan.com/',
-                // url: 'http://ip.jsontest.com/',
                 proxy: 'http://' + proxy.ip + ':' + proxy.port,
                 timeout: 5000,
             }, (err, res, html) => {
@@ -60,9 +59,6 @@ function findGoodProxy() {
                     console.log(proxy);
                     walk();
                 } else {
-                    if (html) {
-                        console.log(html.slice(0, 512));
-                    }
                     resolve(proxy);
                 }
             });
