@@ -48,17 +48,22 @@ function findGoodProxy() {
                 return reject('no proxy available');
             }
             request({
-                url: 'http://ingatlan.com/',
+                url: 'http://ingatlan.com',
                 proxy: 'http://' + proxy.ip + ':' + proxy.port,
                 timeout: 5000,
-            }, (err, res, html) => {
-                if (err ||
-                    (html && /error|unable|unavailable|service|failure|backend|gateway/g.test(html.slice(0, 512).toLowerCase()))) {
+            }, (err, res) => {
+                if (err) {
                     proxy.strikes++;
                     proxy.lastDead = Date.now();
-                    console.log(proxy);
+                    walk();
+                } else if (res.statusCode !== 200) {
+                    proxy.strikes++;
+                    proxy.lastDead = Date.now();
+                    console.log(res.statusCode);
                     walk();
                 } else {
+                    proxy.strikes = 0;
+                    console.log('resolved', proxy);
                     resolve(proxy);
                 }
             });
