@@ -1,6 +1,7 @@
 const request = require('request');
 const proxyService = require('./js/proxy-service');
 const locationService = require('./js/location-service');
+const phoneService = require('./js/phone-service');
 
 // proxyService.getProxy().then(proxy => {
 //     let count = 0;
@@ -41,7 +42,8 @@ const locationService = require('./js/location-service');
 //     }
 // });
 
-locationService.getLocation(22489185);
+// locationService.getLocation(22489185);
+phoneService.getPhone(22617231);
 
 
 

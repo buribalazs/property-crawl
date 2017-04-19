@@ -16,6 +16,7 @@ const reqHeaders = {
 function getLocation(id) {
     console.log(id);
     request({
+            proxy: 'http://5.135.195.166:3128',
             url: 'http://ingatlan.com/detailspage/map?id=' + id + '&beforeAction=true',
             headers: reqHeaders,
             gzip: true,
