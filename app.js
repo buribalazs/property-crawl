@@ -42,7 +42,9 @@ const phoneService = require('./js/phone-service');
 //     }
 // });
 
-locationService.getLocation(23135993);
+// locationService.getLocation(23040153);
+locationService.getLocation(23129911);
+// locationService.getLocation(23135993);
 // phoneService.getPhone(20902357);
 
 

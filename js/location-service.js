@@ -30,10 +30,16 @@ function getLocation(id) {
                 addressItems.each((i, d) => {
                     let addressItem = locationTypes.find(item => item.locationId + '' === d.attribs['data-location-id']);
                     address[addressItem.category.toLowerCase()] = $(d).text().trim();
-                    if(i === addressItems.length - 1){
-                        address.longitude = addressItem.coords[0];
-                        address.latitude = addressItem.coords[1];
-
+                    if (i === addressItems.length - 1) {
+                        // console.log(addressItem.geometry.coordinates, addressItem.type, addressItem.bbox);
+                        if (!addressItem.bbox) {
+                            address.longitude = addressItem.geometry.coordinates[0];
+                            address.latitude = addressItem.geometry.coordinates[1];
+                        } else {
+                            let bbox = addressItem.bbox.split(',').map(val => Number(val));
+                            address.latitude = bbox[1] + Math.abs(bbox[3] - bbox[1]) / 2;
+                            address.longitude = bbox[0] + Math.abs(bbox[2] - bbox[0]) / 2;
+                        }
                     }
                 });
                 console.log(address);
@@ -41,14 +47,17 @@ function getLocation(id) {
         });
 }
 
-function extractLocationTypes(body){
+
+function extractLocationTypes(body) {
     let json = body.slice(body.indexOf('"features":') + 11);
     json = json.slice(0, json.indexOf('});'));
     return JSON.parse(json).filter(i => i.properties.locationId).map(i => ({
         name: i.name,
         category: i.category,
         locationId: i.locationId,
-        coords: i.geometry.coordinates,
+        geometry: i.geometry,
+        type: i.properties.type,
+        bbox: i.properties.bbox,
     }));
 }
 
