@@ -16,7 +16,7 @@ const reqHeaders = {
 function getLocation(id) {
     console.log(id);
     request({
-            proxy: 'http://5.135.195.166:3128',
+            // proxy: 'http://5.135.195.166:3128',
             url: 'http://ingatlan.com/detailspage/map?id=' + id + '&beforeAction=true',
             headers: reqHeaders,
             gzip: true,
@@ -24,14 +24,32 @@ function getLocation(id) {
         (err, res, body) => {
             if (body) {
                 let $ = cheerio.load(body, {decodeEntities: false});
-                let address = '';
-                $('a').each((i, d) => address += $(d).text());
-                address = address.trim().replace(/ +/g, ' ');
-                let bbox = $('#details-map').attr('data-bbox').split(',').map(val => Number(val));
-                let midPoint = [bbox[1] + Math.abs(bbox[3] - bbox[1]) / 2, bbox[0] + Math.abs(bbox[2] - bbox[0]) / 2];
-                console.log(address, midPoint);
+                let locationTypes = extractLocationTypes(body);
+                let address = {};
+                let addressItems = $('a');
+                addressItems.each((i, d) => {
+                    let addressItem = locationTypes.find(item => item.locationId + '' === d.attribs['data-location-id']);
+                    address[addressItem.category.toLowerCase()] = $(d).text().trim();
+                    if(i === addressItems.length - 1){
+                        address.longitude = addressItem.coords[0];
+                        address.latitude = addressItem.coords[1];
+
+                    }
+                });
+                console.log(address);
             }
         });
+}
+
+function extractLocationTypes(body){
+    let json = body.slice(body.indexOf('"features":') + 11);
+    json = json.slice(0, json.indexOf('});'));
+    return JSON.parse(json).filter(i => i.properties.locationId).map(i => ({
+        name: i.name,
+        category: i.category,
+        locationId: i.locationId,
+        coords: i.geometry.coordinates,
+    }));
 }
 
 module.exports = {

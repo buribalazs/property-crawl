@@ -30,7 +30,10 @@ function getPhone(id) {
             gzip: true,
         },
         (err, res, body) => {
-            console.log(body.phone_numbers);
+            if(err){
+                console.log(err.message);
+            }
+            console.log(res.statusCode);
         });
 }
 
