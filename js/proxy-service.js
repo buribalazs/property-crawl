@@ -29,7 +29,7 @@ function getProxy() {
                             lastDead: 0,
                             spent: 0,
                         };
-                        if (!proxies.some(item => item.ip === result.ip)) {
+                        if (!$(tds[4]).text().includes('transparent') && !proxies.some(item => item.ip === result.ip)) {
                             proxies.push(result);
                         }
                     });
