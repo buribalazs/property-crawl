@@ -4,19 +4,18 @@ const proxyService = require('./proxy-service');
 const cheerio = require('cheerio');
 const db = require('./db-service');
 const House = require('./model/House');
+const DEFAULT_TIMEOUT = 2000, COOL_TIMEOUT = 300000;
 
-House.find({id: {$in: [1, 2]}}, 'id', (err, res) => {
-    console.log(err, res);
-});
 
-let currentPage = 1;
+let currentPage = 582;
 let lastPage = 1;
+let timeout = DEFAULT_TIMEOUT;
 
 // proxyService.proxyRequest({
 function walk() {
     logger.log('processing list page', currentPage);
     request({
-        url: 'http://ingatlan.com/lista/elado+lakas+obuda?page=' + currentPage,
+        url: 'http://ingatlan.com/lista/elado?page=' + currentPage,
         headers: {
             'Cache-Control': 'no-cache',
             'X-Requested-With': 'XMLHttpRequest',
@@ -24,13 +23,16 @@ function walk() {
     }, (err, res, html) => {
         if (err) {
             logger.error(err.message);
+            timeout = COOL_TIMEOUT;
+            nextPage();
         } else {
+            timeout = DEFAULT_TIMEOUT + parseInt(Math.random() * DEFAULT_TIMEOUT);
             let $ = cheerio.load(html, {decodeEntities: false});
             lastPage = Math.ceil(parseInt($('.results-num').text().replace(/\D/g, '')) / 20);
             let houses = [];
             $('.search-results tbody tr.list-row').each((i, item) => {
                 item = $(item);
-
+                try{
                 let name = item.find('td.address');
                 name.find('div').html('');
                 name.find('span').text((i, d) => d + ' ');
@@ -53,6 +55,9 @@ function walk() {
                     thumb: $(item.find('.ad-thumb')).attr('src'),
                 };
                 houses.push(data);
+                }catch(e){
+                    console.log(res.statusCode, e.message);
+                }
             });
 
             let idsOnPage = houses.map(d => d.id);
@@ -73,10 +78,10 @@ function walk() {
     });
 }
 
-function nextPage(){
+function nextPage() {
     currentPage++;
-    if (currentPage <= lastPage){
-        walk();
+    if (currentPage <= lastPage) {
+        setTimeout(walk, timeout);
     }
 }
 
