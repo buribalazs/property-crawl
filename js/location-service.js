@@ -1,4 +1,5 @@
-const request = require('request');
+const logger = require('./logger');
+const proxyService = require('./proxy-service');
 const cheerio = require('cheerio');
 
 const reqHeaders = {
@@ -15,7 +16,7 @@ const reqHeaders = {
 
 function getLocation(id) {
     console.log(id);
-    request({
+    proxyService.proxyRequest({
             // proxy: 'http://5.135.195.166:3128',
             url: 'http://ingatlan.com/detailspage/map?id=' + id + '&beforeAction=true',
             headers: reqHeaders,
@@ -31,7 +32,6 @@ function getLocation(id) {
                     let addressItem = locationTypes.find(item => item.locationId + '' === d.attribs['data-location-id']);
                     address[addressItem.category.toLowerCase()] = $(d).text().trim();
                     if (i === addressItems.length - 1) {
-                        // console.log(addressItem.geometry.coordinates, addressItem.type, addressItem.bbox);
                         if (!addressItem.bbox) {
                             address.longitude = addressItem.geometry.coordinates[0];
                             address.latitude = addressItem.geometry.coordinates[1];

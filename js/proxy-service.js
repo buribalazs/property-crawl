@@ -1,3 +1,4 @@
+const logger = require('./logger');
 const request = require('request');
 const cheerio = require('cheerio');
 
@@ -9,15 +10,17 @@ let currentProxy = undefined;
 let proxies = [];
 
 function getProxy() {
-
-    if (currentProxy) {
-        currentProxy.spent = Date.now();
-    }
-
     return new Promise((resolve, reject) => {
+        if (currentProxy) {
+            return resolve(currentProxy)
+        }
         if (!lastUpdate || Date.now() > lastUpdate + UPDATE_FREQ) {
             request('https://free-proxy-list.net/', (err, res, html) => {
-                if (!err) {
+                if (err){
+                    logger.error('proxy list site not available', err.message);
+                }
+                else {
+                    logger.log('downloading proxy list');
                     lastUpdate = Date.now();
                     let $ = cheerio.load(html, {decodeEntities: false});
                     $('#proxylisttable tbody tr').each((index, item) => {
@@ -25,6 +28,7 @@ function getProxy() {
                         let result = {
                             ip: $(tds[0]).text().trim(),
                             port: $(tds[1]).text().trim(),
+                            code: $(tds[2]).text().trim(),
                             strikes: 0,
                             lastDead: 0,
                             spent: 0,
@@ -36,6 +40,8 @@ function getProxy() {
                 }
                 findGoodProxy().then(resolve).catch(reject);
             });
+        } else {
+            findGoodProxy().then(resolve).catch(reject);
         }
     });
 }
@@ -45,6 +51,8 @@ function findGoodProxy() {
         function walk() {
             let proxy = proxies.find(item => item.strikes < 3 && item.lastDead < Date.now() - UPDATE_FREQ && item.spent < Date.now() - COOL_TIME);
             if (!proxy) {
+                lastUpdate = 0;
+                logger.error('no proxy available');
                 return reject('no proxy available');
             }
             request({
@@ -55,15 +63,17 @@ function findGoodProxy() {
                 if (err) {
                     proxy.strikes++;
                     proxy.lastDead = Date.now();
+                    logger.warn('proxy error ' + err.message, proxyInfo(proxy));
                     walk();
                 } else if (res.statusCode !== 200) {
                     proxy.strikes++;
                     proxy.lastDead = Date.now();
-                    console.log(res.statusCode);
+                    logger.warn('proxy error ' + res.statusCode, proxyInfo(proxy));
                     walk();
                 } else {
                     proxy.strikes = 0;
-                    console.log('resolved', proxy);
+                    logger.log('proxy found', proxyInfo(proxy));
+                    currentProxy = proxy;
                     resolve(proxy);
                 }
             });
@@ -73,6 +83,37 @@ function findGoodProxy() {
     });
 }
 
+function proxyRequest(cfg, fn) {
+    function walk() {
+        getProxy().then(proxy => {
+            cfg.proxy = 'http://' + proxy.ip + ':' + proxy.port;
+            cfg.timeout = 10000;
+            request(cfg, (err, res, body) => {
+                if (err || (res && res.statusCode !== 200)) {
+                    logger.warn('proxy spent', proxyInfo(proxy), (err || {}).message, (res || {}).statusCode);
+                    proxySpent(proxy);
+                    return walk();
+                }
+                logger.log('good proxy', proxyInfo(proxy));
+                fn(err, res, body);
+            });
+
+        }).catch(fn);
+    }
+
+    walk();
+}
+
+function proxySpent(proxy) {
+    proxy.spent = Date.now();
+    currentProxy = undefined;
+}
+
+function proxyInfo(proxy) {
+    proxy = proxy || {};
+    return proxy.ip + ':' + proxy.port + ' ' + proxy.code;
+}
+
 module.exports = {
-    getProxy,
+    proxyRequest,
 };

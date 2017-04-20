@@ -1,4 +1,5 @@
-const request = require('request');
+const logger = require('./logger');
+const proxyService = require('./proxy-service');
 const cheerio = require('cheerio');
 
 const reqHeaders = {
@@ -15,8 +16,8 @@ const reqHeaders = {
 };
 
 function getPhone(id) {
-    request({
-            proxy: 'http://5.135.195.166:3128',
+    proxyService.proxyRequest({
+            // proxy: 'http://5.135.195.166:3128',
             url: 'http://ingatlan.com/detailspage/api/' + id,
             method: 'PUT',
             json: {
@@ -31,9 +32,9 @@ function getPhone(id) {
         },
         (err, res, body) => {
             if(err){
-                console.log(err.message);
+                logger.error('phoneService:', err.message);
             }
-            console.log(res.statusCode);
+            console.log(res.statusCode, body, typeof body);
         });
 }
 
