@@ -4,11 +4,11 @@ const proxyService = require('./proxy-service');
 const cheerio = require('cheerio');
 const db = require('./db-service');
 const House = require('./model/House');
-const DEFAULT_TIMEOUT = 2000, COOL_TIMEOUT = 300000;
+const DEFAULT_TIMEOUT = 10, COOL_TIMEOUT = 1000;
 
 
-let currentPage = 582;
-let lastPage = 1;
+let currentPage = 1941;
+let lastPage = 0;
 let timeout = DEFAULT_TIMEOUT;
 
 // proxyService.proxyRequest({
@@ -28,7 +28,7 @@ function walk() {
         } else {
             timeout = DEFAULT_TIMEOUT + parseInt(Math.random() * DEFAULT_TIMEOUT);
             let $ = cheerio.load(html, {decodeEntities: false});
-            lastPage = Math.ceil(parseInt($('.results-num').text().replace(/\D/g, '')) / 20);
+            lastPage = lastPage || Math.ceil(parseInt($('.results-num').text().replace(/\D/g, '')) / 20);
             let houses = [];
             $('.search-results tbody tr.list-row').each((i, item) => {
                 item = $(item);
@@ -82,6 +82,9 @@ function nextPage() {
     currentPage++;
     if (currentPage <= lastPage) {
         setTimeout(walk, timeout);
+        logger.log('walk after ' + timeout + ' ms');
+    }else{
+        logger.log('last page reached', lastPage);
     }
 }
 
