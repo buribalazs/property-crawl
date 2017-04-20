@@ -14,6 +14,7 @@ let lastPage = 1;
 
 // proxyService.proxyRequest({
 function walk() {
+    logger.log('processing list page', currentPage);
     request({
         url: 'http://ingatlan.com/lista/elado+lakas+obuda?page=' + currentPage,
         headers: {
@@ -60,14 +61,23 @@ function walk() {
                 houses = houses.filter(d => !res.includes(d.id));
                 if (houses.length) {
                     House.collection.insert(houses, (err, res) => {
-                        console.log(err, res);
+                        logger.log(res.insertedCount, 'items added to db');
+                        nextPage();
                     });
                 } else {
                     console.log('nothing new'); //todo check for price changes!
+                    nextPage();
                 }
             });
         }
     });
+}
+
+function nextPage(){
+    currentPage++;
+    if (currentPage <= lastPage){
+        walk();
+    }
 }
 
 walk();
