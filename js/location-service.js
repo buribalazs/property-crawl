@@ -1,6 +1,10 @@
 const logger = require('./logger');
-const proxyService = require('./proxy-service');
+const request = require('request');
 const cheerio = require('cheerio');
+const House = require('./model/House');
+const DEFAULT_TIMEOUT = 500, COOL_TIMEOUT = 2300;
+
+let timeout = DEFAULT_TIMEOUT;
 
 const reqHeaders = {
     'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.110 Safari/537.36',
@@ -15,36 +19,46 @@ const reqHeaders = {
 };
 
 function getLocation(id) {
-    console.log(id);
-    proxyService.proxyRequest({
-            // proxy: 'http://5.135.195.166:3128',
-            url: 'http://ingatlan.com/detailspage/map?id=' + id + '&beforeAction=true',
-            headers: reqHeaders,
-            gzip: true,
-        },
-        (err, res, body) => {
-            if (body) {
-                let $ = cheerio.load(body, {decodeEntities: false});
-                let locationTypes = extractLocationTypes(body);
-                let address = {};
-                let addressItems = $('a');
-                addressItems.each((i, d) => {
-                    let addressItem = locationTypes.find(item => item.locationId + '' === d.attribs['data-location-id']);
-                    address[addressItem.category.toLowerCase()] = $(d).text().trim();
-                    if (i === addressItems.length - 1) {
-                        if (!addressItem.bbox) {
-                            address.longitude = addressItem.geometry.coordinates[0];
-                            address.latitude = addressItem.geometry.coordinates[1];
-                        } else {
-                            let bbox = addressItem.bbox.split(',').map(val => Number(val));
-                            address.latitude = bbox[1] + Math.abs(bbox[3] - bbox[1]) / 2;
-                            address.longitude = bbox[0] + Math.abs(bbox[2] - bbox[0]) / 2;
-                        }
+    return new Promise((resolve, reject) => {
+        request({
+                url: 'http://ingatlan.com/detailspage/map?id=' + id + '&beforeAction=true',
+                headers: reqHeaders,
+                gzip: true,
+            },
+            (err, res, body) => {
+                if (err) {
+                    logger.error('LOCATIONSERVICE:', e.message, id);
+                    reject(err.message);
+                    timeout = COOL_TIMEOUT;
+                } else {
+                    timeout = DEFAULT_TIMEOUT + parseInt(Math.random() * DEFAULT_TIMEOUT / 2);
+                    try {
+                        let $ = cheerio.load(body, {decodeEntities: false});
+                        let locationTypes = extractLocationTypes(body);
+                        let address = {};
+                        let addressItems = $('a');
+                        addressItems.each((i, d) => {
+                            let addressItem = locationTypes.find(item => item.locationId + '' === d.attribs['data-location-id']);
+                            address[addressItem.category.toLowerCase()] = $(d).text().trim();
+                            if (i === addressItems.length - 1) {
+                                if (!addressItem.bbox) {
+                                    address.longitude = addressItem.geometry.coordinates[0];
+                                    address.latitude = addressItem.geometry.coordinates[1];
+                                } else {
+                                    let bbox = addressItem.bbox.split(',').map(val => Number(val));
+                                    address.latitude = bbox[1] + Math.abs(bbox[3] - bbox[1]) / 2;
+                                    address.longitude = bbox[0] + Math.abs(bbox[2] - bbox[0]) / 2;
+                                }
+                            }
+                        });
+                        resolve(address);
+                    }catch(e){
+                        logger.error('LOCATIONSERVICE, PARSE:', e.message, id);
+                        reject(e.message);
                     }
-                });
-                console.log(address);
-            }
-        });
+                }
+            });
+    });
 }
 
 
@@ -61,6 +75,19 @@ function extractLocationTypes(body) {
     }));
 }
 
-module.exports = {
-    getLocation
-};
+function walk() {
+    House.findOne({location: {$exists: false}}, (err, house) => {
+        console.log('found house without location', house.id);
+        getLocation(house.id).then(address => {
+            house.location = address;
+            house.save();
+            logger.log('LOCATIONSERVICE added location to', house.id);
+            setTimeout(walk, timeout);
+        }).catch(e => {
+            logger.error('LOCATIONSERVICE error parsing location', e.message, e.id);
+            setTimeout(walk, timeout);
+        });
+    });
+}
+
+walk();
