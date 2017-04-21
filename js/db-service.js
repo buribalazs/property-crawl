@@ -1,7 +1,7 @@
 const logger = require('./logger');
 const mongoose = require('mongoose');
 mongoose.Promise = global.Promise;
-mongoose.connect('mongodb://localhost/propertyDB', {user:'app', pass:'kalap'});
+mongoose.connect('mongodb://localhost/propertyDB');
 const db = mongoose.connection;
 
 db.on('error', logger.error.bind(logger, 'connection error:'));
