@@ -4,11 +4,11 @@ const proxyService = require('./proxy-service');
 const cheerio = require('cheerio');
 const db = require('./db-service');
 const House = require('./model/House');
-const DEFAULT_TIMEOUT = 500, COOL_TIMEOUT = 3000;
+const DEFAULT_TIMEOUT = 3500, COOL_TIMEOUT = 17000;
 
 
 let currentPage = 1;
-let lastPage = 0;
+let lastPage = undefined;
 let timeout = DEFAULT_TIMEOUT;
 
 function walk() {
@@ -23,7 +23,7 @@ function walk() {
         if (err) {
             logger.error('LISTSERVICE: ', err.message);
             timeout = COOL_TIMEOUT;
-            nextPage();
+            nextPage(true);
         } else {
             timeout = DEFAULT_TIMEOUT + parseInt(Math.random() * DEFAULT_TIMEOUT);
             let $ = cheerio.load(html, {decodeEntities: false});
@@ -36,6 +36,7 @@ function walk() {
             $('.search-results tbody tr.list-row').each((i, item) => {
                 item = $(item);
                 try {
+                    let now = new Date();
                     let name = item.find('td.address');
                     name.find('div').html('');
                     name.find('span').text((i, d) => d + ' ');
@@ -49,6 +50,8 @@ function walk() {
 
                     let data = {
                         id: parseInt(item.attr('data-id')),
+                        firstSeen: now,
+                        lastSeen: now,
                         name: name.text().trim(),
                         price: Number(item.find('.price-huf').text().match(/[0-9.]/g).join('')),
                         houseSize: houseSize,
@@ -65,11 +68,11 @@ function walk() {
             });
 
             let idsOnPage = houses.map(d => d.id);
-            House.find({id: {$in: idsOnPage}}, 'id', (err, res) => {
-                res = res.map(d => d.id);
-                houses = houses.filter(d => !res.includes(d.id));
-                if (houses.length) {
-                    House.collection.insert(houses, (err, res) => {
+            House.find({id: {$in: idsOnPage}}, (err, res) => {
+                let foundIds = res.map(d => d.id);
+                let newHouses = houses.filter(d => !foundIds.includes(d.id));
+                if (newHouses.length) {
+                    House.collection.insert(newHouses, (err, res) => {
                         logger.log('LISTSERVICE: ', res.insertedCount, 'items added to db');
                         nextPage();
                     });
@@ -77,13 +80,35 @@ function walk() {
                     console.log('nothing new');
                     nextPage();
                 }
+                res.filter(oldItem => idsOnPage.includes(oldItem.id)).forEach(oldItem => {
+                    let newData = houses.find(newItem => newItem.id === oldItem.id);
+                    let changed = false;
+                    if (!oldItem.firstSeen){
+                        oldItem.firstSeen = new Date();
+                        changed = true;
+                    }
+                    oldItem.lastSeen = new Date();
+                    if (!oldItem.priceHistory || !oldItem.priceHistory.length){
+                        changed = true;
+                        oldItem.priceHistory = [{price:oldItem.price, date:new Date()}];
+                    }
+                    if(oldItem.price !== newData.price){
+                        changed = true;
+                        oldItem.priceHistory.push({price:newData.price, date:new Date()});
+                    }
+                    if (changed){
+                        oldItem.save();
+                    }
+                });
             });
         }
     });
 }
 
-function nextPage() {
-    currentPage++;
+function nextPage(err) {
+    if (!err) {
+        currentPage++;
+    }
     if (currentPage <= lastPage) {
         logger.log('LISTSERVICE: walk after ' + timeout + ' ms');
     } else {

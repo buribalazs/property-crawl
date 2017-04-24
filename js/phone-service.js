@@ -3,7 +3,7 @@ const request = require('request');
 const cheerio = require('cheerio');
 const House = require('./model/House');
 
-const DEFAULT_TIMEOUT = 500, COOL_TIMEOUT = 2300;
+const DEFAULT_TIMEOUT = 2500, COOL_TIMEOUT = 16300;
 
 let timeout = DEFAULT_TIMEOUT;
 
@@ -39,7 +39,7 @@ function getPhone(id) {
                 if (err) {
                     timeout = COOL_TIMEOUT;
                     logger.error('phoneService:', err.message);
-                    reject('PHONESERVICE:', e.message, id);
+                    reject('PHONESERVICE:', err.message, id);
                 } else {
                     timeout = DEFAULT_TIMEOUT + parseInt(Math.random() * DEFAULT_TIMEOUT / 1.2);
                     try{
