@@ -55,6 +55,9 @@ function getLocation(id) {
                         });
                         resolve(address);
                     } catch (e) {
+                        if(JSON.stringify(body).includes('error.ingatlan.com')){
+                            return resolve({error:true});
+                        }
                         logger.error('LOCATIONSERVICE, PARSE:', e.message, id);
                         reject(e.message);
                     }

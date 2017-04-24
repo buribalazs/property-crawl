@@ -97,6 +97,7 @@ function walk() {
                         oldItem.priceHistory.push({price:newData.price, date:new Date()});
                     }
                     if (changed){
+                        logger.log('updated', oldItem.id, oldItem.priceHistory);
                         oldItem.save();
                     }
                 });

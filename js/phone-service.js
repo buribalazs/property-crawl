@@ -42,6 +42,9 @@ function getPhone(id) {
                     reject('PHONESERVICE:', err.message, id);
                 } else {
                     timeout = DEFAULT_TIMEOUT + parseInt(Math.random() * DEFAULT_TIMEOUT / 1.2);
+                    if (JSON.stringify(body).includes('notfoundpage')){
+                        resolve(['error']);
+                    }
                     try{
                         resolve(body.phone_numbers);
                     }catch(e){
@@ -58,7 +61,7 @@ function walk() {
         getPhone(house.id).then(phones => {
                 house.phones = phones;
                 house.save();
-                logger.log('PHONESERVICE added phones to', house.id);
+                logger.log('PHONESERVICE added phones to', house.id, phones);
                 setTimeout(walk, timeout);
             }).catch(e => {
                 logger.error('PHONESERVICE error parsing phones', e.message, e.id);
