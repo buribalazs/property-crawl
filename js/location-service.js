@@ -55,8 +55,8 @@ function getLocation(id) {
                         });
                         resolve(address);
                     } catch (e) {
-                        if(JSON.stringify(body).includes('error.ingatlan.com')){
-                            return resolve({error:true});
+                        if (JSON.stringify(body).includes('error.ingatlan.com')) {
+                            return resolve({error: true});
                         }
                         logger.error('LOCATIONSERVICE, PARSE:', e.message, id);
                         reject(e.message);
@@ -85,6 +85,9 @@ function walk() {
         console.log('found house without location', house.id);
         getLocation(house.id).then(address => {
             house.location = address;
+            if (!address.error) {
+                house.loc = [address.longitude, address.latitude];
+            }
             house.save();
             logger.log('LOCATIONSERVICE added location to', house.id);
             setTimeout(walk, timeout);

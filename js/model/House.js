@@ -1,4 +1,6 @@
 const mongoose = require('mongoose');
+const mongoosastic = require('mongoosastic');
+
 
 const houseSchema = new mongoose.Schema({
     id: Number,
@@ -15,10 +17,13 @@ const houseSchema = new mongoose.Schema({
     landSize: Number,
     roomCount: String,
     location: Object,
+    loc: Array,
     agency: String,
     thumb: String,
     phones: Array,
 });
+
+houseSchema.plugin(mongoosastic);
 
 const House = mongoose.model('house', houseSchema);
 

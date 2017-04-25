@@ -42,12 +42,12 @@ function getPhone(id) {
                     reject('PHONESERVICE:', err.message, id);
                 } else {
                     timeout = DEFAULT_TIMEOUT + parseInt(Math.random() * DEFAULT_TIMEOUT / 1.2);
-                    if (JSON.stringify(body).includes('notfoundpage')){
+                    if (JSON.stringify(body).includes('notfoundpage')) {
                         resolve(['error']);
                     }
-                    try{
+                    try {
                         resolve(body.phone_numbers);
-                    }catch(e){
+                    } catch (e) {
                         reject(e.message);
                     }
                 }
@@ -56,16 +56,22 @@ function getPhone(id) {
 }
 
 function walk() {
-    House.findOne({phones: {$exists: false}}, (err, house) => {
+    House.findOne({$or:[{phones: {$exists: false}}, {phones: {$size: 0}}]}, (err, house) => {
+        if (!house) {
+            console.log('no house without phone found');
+            timeout = COOL_TIMEOUT * 100;
+            setTimeout(walk, timeout);
+            return;
+        }
         console.log('found house without phones', house.id);
         getPhone(house.id).then(phones => {
-                house.phones = phones;
-                house.save();
-                logger.log('PHONESERVICE added phones to', house.id, phones);
-                setTimeout(walk, timeout);
-            }).catch(e => {
-                logger.error('PHONESERVICE error parsing phones', e.message, e.id);
-                setTimeout(walk, timeout);
+            house.phones = phones.length ? phones : ['none'];
+            house.save();
+            logger.log('PHONESERVICE added phones to', house.id, phones);
+            setTimeout(walk, timeout);
+        }).catch(e => {
+            logger.error('PHONESERVICE error parsing phones', e.message, e.id);
+            setTimeout(walk, timeout);
         });
     });
 }

@@ -95,6 +95,7 @@ function walk() {
                     if(oldItem.price !== newData.price){
                         changed = true;
                         oldItem.priceHistory.push({price:newData.price, date:new Date()});
+                        oldItem.price = newData.price;
                     }
                     if (changed){
                         logger.log('updated', oldItem.id, oldItem.priceHistory);
