@@ -1,5 +1,6 @@
 const logger = require('./logger');
 const request = require('request');
+const fsUtil = require('./fs-util');
 const proxyService = require('./proxy-service');
 const cheerio = require('cheerio');
 const db = require('./db-service');
@@ -7,14 +8,20 @@ const House = require('./model/House');
 const DEFAULT_TIMEOUT = 3500, COOL_TIMEOUT = 17000;
 
 
-let currentPage = 1;
+let currentPage = 9748;
 let lastPage = undefined;
 let timeout = DEFAULT_TIMEOUT;
+let currentState = undefined;
+
+fsUtil.state().then(state => {
+    currentState = state;
+    walk();
+});
 
 function walk() {
-    logger.log('LISTSERVICE: processing list page', currentPage);
+    logger.log('LISTSERVICE: processing list page', currentState.currentPage);
     request({
-        url: 'http://ingatlan.com/lista/elado?page=' + currentPage,
+        url: 'http://ingatlan.com/lista/elado?page=' + currentState.currentPage,
         headers: {
             'Cache-Control': 'no-cache',
             'X-Requested-With': 'XMLHttpRequest',
@@ -25,6 +32,13 @@ function walk() {
             timeout = COOL_TIMEOUT;
             nextPage(true);
         } else {
+
+            if (html.includes('error.ingatlan.com')) {
+                currentState.currentPage = 0;
+                nextPage();
+                return;
+            }
+
             timeout = DEFAULT_TIMEOUT + parseInt(Math.random() * DEFAULT_TIMEOUT);
             let $ = cheerio.load(html, {decodeEntities: false});
             let lastPageTmp = Math.ceil(parseInt($('.results-num').text().replace(/\D/g, '')) / 20);
@@ -65,6 +79,7 @@ function walk() {
                     logger.error('LISTSERVICE: ', res.statusCode, e.message);
                     logger.dump('LISTSERVICE: list page parse error', html);
                 }
+
             });
 
             let idsOnPage = houses.map(d => d.id);
@@ -83,21 +98,21 @@ function walk() {
                 res.filter(oldItem => idsOnPage.includes(oldItem.id)).forEach(oldItem => {
                     let newData = houses.find(newItem => newItem.id === oldItem.id);
                     let changed = false;
-                    if (!oldItem.firstSeen){
+                    if (!oldItem.firstSeen) {
                         oldItem.firstSeen = new Date();
                         changed = true;
                     }
                     oldItem.lastSeen = new Date();
-                    if (!oldItem.priceHistory || !oldItem.priceHistory.length){
+                    if (!oldItem.priceHistory || !oldItem.priceHistory.length) {
                         changed = true;
-                        oldItem.priceHistory = [{price:oldItem.price, date:new Date()}];
+                        oldItem.priceHistory = [{price: oldItem.price, date: new Date()}];
                     }
-                    if(oldItem.price !== newData.price){
+                    if (oldItem.price !== newData.price) {
                         changed = true;
-                        oldItem.priceHistory.push({price:newData.price, date:new Date()});
+                        oldItem.priceHistory.push({price: newData.price, date: new Date()});
                         oldItem.price = newData.price;
                     }
-                    if (changed){
+                    if (changed) {
                         logger.log('updated', oldItem.id, oldItem.priceHistory);
                         oldItem.save();
                     }
@@ -109,16 +124,15 @@ function walk() {
 
 function nextPage(err) {
     if (!err) {
-        currentPage++;
+        currentState.currentPage++;
     }
-    if (currentPage <= lastPage) {
+    if (currentState.currentPage <= lastPage) {
         logger.log('LISTSERVICE: walk after ' + timeout + ' ms');
     } else {
         logger.log('LISTSERVICE: last page reached', lastPage);
-        currentPage = 0;
+        currentState.currentPage = 0;
     }
+    fsUtil.state(currentState);
     setTimeout(walk, timeout);
 }
-
-walk();
 

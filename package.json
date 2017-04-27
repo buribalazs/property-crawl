@@ -20,6 +20,8 @@
     "cheerio": "^0.22.0",
     "mongoosastic": "^4.3.0",
     "mongoose": "^4.9.4",
+    "node-progress": "^0.1.0",
+    "progress": "^2.0.0",
     "request": "^2.81.0",
     "winston": "^2.3.1"
   }

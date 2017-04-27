@@ -82,19 +82,24 @@ function extractLocationTypes(body) {
 
 function walk() {
     House.findOne({location: {$exists: false}}, (err, house) => {
-        console.log('found house without location', house.id);
-        getLocation(house.id).then(address => {
-            house.location = address;
-            if (!address.error) {
-                house.loc = [address.longitude, address.latitude];
-            }
-            house.save();
-            logger.log('LOCATIONSERVICE added location to', house.id);
+        if (house) {
+            console.log('found house without location', house.id);
+            getLocation(house.id).then(address => {
+                house.location = address;
+                if (!address.error) {
+                    house.loc = [address.longitude, address.latitude];
+                }
+                house.save();
+                logger.log('LOCATIONSERVICE added location to', house.id);
+                setTimeout(walk, timeout);
+            }).catch(e => {
+                logger.error('LOCATIONSERVICE error parsing location', e.message, e.id);
+                setTimeout(walk, timeout);
+            });
+        } else {
+            timeout = COOL_TIMEOUT * 100;
             setTimeout(walk, timeout);
-        }).catch(e => {
-            logger.error('LOCATIONSERVICE error parsing location', e.message, e.id);
-            setTimeout(walk, timeout);
-        });
+        }
     });
 }
 
