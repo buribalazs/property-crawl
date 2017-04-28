@@ -11,13 +11,30 @@ function mkdir(path) {
     });
 }
 
+function touchFileOnPath(path) {
+    return new Promise((resolve, reject) => {
+        try {
+            mkdir(path.split('/').slice(0, -1).join('/'));
+            fs.writeFile('./' + path, '', (err, res) => {
+                if (err) {
+                    return reject(err);
+                }
+                resolve(res);
+            });
+        } catch (e) {
+            reject(e);
+        }
+    });
+}
+
+
 function state(obj) {
     if (obj) {
-        return new Promise((resolve,reject) => {
-            fs.writeFile('./state/state.state', JSON.stringify(obj), (err,res) => {
-                if (err){
+        return new Promise((resolve, reject) => {
+            fs.writeFile('./state/state.state', JSON.stringify(obj), (err, res) => {
+                if (err) {
                     reject(err.message);
-                }else{
+                } else {
                     resolve(res);
                 }
             });
@@ -40,5 +57,6 @@ function state(obj) {
 
 module.exports = {
     mkdir,
-    state
+    state,
+    touchFileOnPath,
 };

@@ -7,9 +7,9 @@ mongoose.Promise = global.Promise;
 mongoose.connect('mongodb://localhost/propertyDB', {user: 'app', pass: 'kalap'});
 
 
-let stream = House.synchronize();
 let count = 0;
 House.count({}, (err, res) => {
+    let stream = House.synchronize();
     if (res) {
         console.log(res + ' total documents');
         let bar = new ProgressBar('  indexing [:bar]', {
