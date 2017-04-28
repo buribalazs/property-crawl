@@ -59,8 +59,8 @@ fsUtil.touchFileOnPath('/temp/export.tsv').then(() => {
                     // handle the error
                 }).on('close', function () {
                     console.log('DONE');
-                    process.exit(0);
                     fs.close(fd);
+                    process.exit(0);
                 });
             });
         }
