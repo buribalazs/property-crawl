@@ -5,10 +5,11 @@ const db = require('./js/db-service');
 const House = require('./js/model/House');
 const ProgressBar = require('progress');
 
-const QUERY = {location: {$exists: true}};
+const QUERY = {location: {$exists: true}, propertyType: {$exists:true}};
 
 const colDef = [
     {id: d => d.id},
+    {propertyType: d => d.propertyType},
     {name: d => d.name},
     {thumb: d => d.thumb},
     {price: d => d.price},

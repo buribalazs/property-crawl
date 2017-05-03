@@ -73,6 +73,7 @@ function walk() {
                         roomCount: roomCount,
                         agency: office || undefined,
                         thumb: $(item.find('.ad-thumb')).attr('src'),
+                        propertyType: item.find('td.address a').attr('href').replace(/.*elado\+/, '').replace(/\/.*/, ''),
                     };
                     houses.push(data);
                 } catch (e) {
@@ -112,8 +113,12 @@ function walk() {
                         oldItem.priceHistory.push({price: newData.price, date: new Date()});
                         oldItem.price = newData.price;
                     }
+                    if (!oldItem.propertyType && newData.propertyType) {
+                        changed = true;
+                        oldItem.propertyType = newData.propertyType;
+                    }
                     if (changed) {
-                        logger.log('updated', oldItem.id, oldItem.priceHistory);
+                        logger.log('updated', oldItem.id, oldItem.propertyType);
                         oldItem.save();
                     }
                 });
