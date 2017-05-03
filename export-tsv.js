@@ -5,7 +5,8 @@ const db = require('./js/db-service');
 const House = require('./js/model/House');
 const ProgressBar = require('progress');
 
-const QUERY = {location: {$exists: true}, propertyType: {$exists:true}};
+const MAX_ROWS = 10000; //rapidminer free row limit
+const QUERY = {location: {$exists: true}, propertyType: {$exists: true}};
 
 const colDef = [
     {id: d => d.id},
@@ -45,23 +46,27 @@ fsUtil.touchFileOnPath('/temp/export.tsv').then(() => {
         } else {
             writeHeader(fd, colDef);
             House.count(QUERY, (err, count) => {
+                count = Math.min(count, MAX_ROWS);
                 let bar = new ProgressBar('  writing [:bar] :current / :total', {
                     complete: '=',
                     incomplete: ' ',
                     width: 70,
                     total: count,
                 });
-                let stream = House.find(QUERY).cursor();
+                let cursor = House.aggregate([
+                    {$match: QUERY},
+                    {$sample: {size: MAX_ROWS}},
+                ]).cursor({batchSize: 1}).exec();
+                cursor.each((err, doc) => {
+                    if (!err && doc) {
+                        writeData(fd, colDef, doc);
+                        bar.tick();
+                    } else if (doc === null) {
+                        console.log('DONE');
+                        fs.close(fd);
+                        process.exit(0);
+                    }
 
-                stream.on('data', function (doc) {
-                    writeData(fd, colDef, doc);
-                    bar.tick();
-                }).on('error', function (err) {
-                    // handle the error
-                }).on('close', function () {
-                    console.log('DONE');
-                    fs.close(fd);
-                    process.exit(0);
                 });
             });
         }
