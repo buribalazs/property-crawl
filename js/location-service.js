@@ -53,6 +53,7 @@ function getLocation(id) {
                                 }
                             }
                         });
+                        console.log(address.longitude, address.latitude);
                         resolve(address);
                     } catch (e) {
                         if (JSON.stringify(body).includes('error.ingatlan.com')) {
